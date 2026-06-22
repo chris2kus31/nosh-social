@@ -1,7 +1,6 @@
 import { isThisWeek, isToday, isTomorrow } from 'date-fns';
 import {
   Calendar,
-  ChevronDown,
   Coffee,
   Filter,
   Flame,
@@ -22,13 +21,22 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/Screen';
 import { EventCard } from '@/features/events/EventCard';
+import {
+  type DateFilterKey,
+  DATE_FILTERS,
+  EMPTY_FILTERS,
+  type Filters,
+  FilterSheet,
+  activeFilterCount,
+  inGroupSize,
+} from '@/features/events/FilterSheet';
 import { useEvents, type EventRow } from '@/features/events/useEvents';
 import { useMyProfile } from '@/features/profile/useProfile';
 import { useAuthStore } from '@/stores/auth';
-import { HOST_INTENTS, PRICE_RANGES, VIBES } from '@/theme/nosh';
 
 const CARD_WIDTH = 300;
 
@@ -40,91 +48,30 @@ const TAGLINES = [
   'Where strangers become friends',
 ];
 
-const GROUP_SIZES = [
-  { key: 'small', label: '2-4 people' },
-  { key: 'medium', label: '5-8 people' },
-  { key: 'large', label: '9+ people' },
-] as const;
-type GroupSize = (typeof GROUP_SIZES)[number]['key'];
-
-const DATE_FILTERS = [
-  { key: 'today', label: 'Today' },
-  { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'this_week', label: 'This Week' },
-] as const;
-type DateFilterKey = (typeof DATE_FILTERS)[number]['key'];
-
-type Filters = {
-  price: string[];
-  groupSize: GroupSize | null;
-  vibes: string[];
-  intents: string[];
-};
-const EMPTY_FILTERS: Filters = { price: [], groupSize: null, vibes: [], intents: [] };
-
 type Attendee = { user_id: string };
 const attendeesOf = (e: EventRow) =>
   Array.isArray(e.attendees) ? (e.attendees as unknown as Attendee[]) : [];
 const hourOf = (e: EventRow) => (e.date_time ? new Date(e.date_time).getHours() : -1);
 const isUpcoming = (e: EventRow) => e.status === 'upcoming';
-const inGroupSize = (seats: number, size: GroupSize) =>
-  size === 'small'
-    ? seats >= 2 && seats <= 4
-    : size === 'medium'
-      ? seats >= 5 && seats <= 8
-      : seats >= 9;
 
-function Pill({
+function DateChip({
   label,
   active,
   onPress,
-  size = 'sm',
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
-  size?: 'sm' | 'md';
 }) {
-  const pad = size === 'md' ? 'px-4 py-2' : 'px-3 py-1.5';
-  const text = size === 'md' ? 'text-sm' : 'text-xs';
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`rounded-full border ${pad} ${active ? 'border-white/30 bg-white/20' : 'border-white/10 bg-white/5'}`}
+      className={`rounded-full border px-4 py-2 ${active ? 'border-white/30 bg-white/20' : 'border-white/10 bg-white/5'}`}
     >
-      <Text className={`${text} font-medium ${active ? 'text-white' : 'text-white/60'}`}>
+      <Text className={`text-sm font-medium ${active ? 'text-white' : 'text-white/60'}`}>
         {label}
       </Text>
     </TouchableOpacity>
-  );
-}
-
-function FilterDropdown({
-  title,
-  summary,
-  children,
-}: {
-  title: string;
-  summary: string;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <View className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
-      <TouchableOpacity
-        onPress={() => setOpen((o) => !o)}
-        className="flex-row items-center justify-between p-3.5"
-      >
-        <Text className="text-sm font-medium text-white">{title}</Text>
-        <View className="flex-row items-center gap-2">
-          {!!summary && <Text className="text-xs text-white/60">{summary}</Text>}
-          <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
-            <ChevronDown color="rgba(255,255,255,0.6)" size={18} />
-          </View>
-        </View>
-      </TouchableOpacity>
-      {open && <View className="flex-row flex-wrap gap-2 px-3.5 pb-3.5">{children}</View>}
-    </View>
   );
 }
 
@@ -189,6 +136,7 @@ export default function Discover() {
   const { data: profile } = useMyProfile();
   const userId = useAuthStore((s) => s.user?.id);
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const columns = width >= 1024 ? 3 : width >= 700 ? 2 : 1;
 
   const [dateFilter, setDateFilter] = useState<DateFilterKey | null>(null);
@@ -203,18 +151,7 @@ export default function Discover() {
 
   const events = useMemo(() => data ?? [], [data]);
 
-  const toggleArray = (key: 'price' | 'vibes' | 'intents', value: string) =>
-    setFilters((p) => ({
-      ...p,
-      [key]: p[key].includes(value) ? p[key].filter((v) => v !== value) : [...p[key], value],
-    }));
-
-  const activeCount =
-    filters.price.length +
-    filters.vibes.length +
-    filters.intents.length +
-    (filters.groupSize ? 1 : 0) +
-    (dateFilter ? 1 : 0);
+  const activeCount = activeFilterCount(filters, dateFilter);
   const hasFilters = activeCount > 0;
 
   const clearAll = () => {
@@ -291,7 +228,7 @@ export default function Discover() {
     if (filters.price.length)
       list = list.filter((e) => e.price_range && filters.price.includes(e.price_range));
     if (filters.groupSize)
-      list = list.filter((e) => inGroupSize(e.max_seats || 0, filters.groupSize as GroupSize));
+      list = list.filter((e) => inGroupSize(e.max_seats || 0, filters.groupSize!));
     if (filters.vibes.length)
       list = list.filter((e) => (e.vibe ?? []).some((v) => filters.vibes.includes(v)));
     if (filters.intents.length)
@@ -328,8 +265,8 @@ export default function Discover() {
           {/* Filters button */}
           <View className="mt-4 flex-row gap-3 px-5">
             <TouchableOpacity
-              onPress={() => setShowFilters((s) => !s)}
-              className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border ${showFilters || hasFilters ? 'border-white/30 bg-white/20' : 'border-white/10 bg-white/5'}`}
+              onPress={() => setShowFilters(true)}
+              className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border ${hasFilters ? 'border-white/30 bg-white/20' : 'border-white/10 bg-white/5'}`}
             >
               <Filter color="#fff" size={16} />
               <Text className="font-medium text-white">Filters</Text>
@@ -352,72 +289,14 @@ export default function Discover() {
           {/* Quick date filters */}
           <View className="mt-3 flex-row px-5" style={{ columnGap: 10 }}>
             {DATE_FILTERS.map((f) => (
-              <Pill
+              <DateChip
                 key={f.key}
-                size="md"
                 label={f.label}
                 active={dateFilter === f.key}
                 onPress={() => setDateFilter(dateFilter === f.key ? null : f.key)}
               />
             ))}
           </View>
-
-          {/* Filter panel: collapsible dropdowns */}
-          {showFilters && (
-            <View className="mx-5 mt-4 gap-3 rounded-2xl border border-white/20 bg-white/10 p-4">
-              <FilterDropdown title="Price Range" summary={filters.price.join('  ')}>
-                {PRICE_RANGES.map((p) => (
-                  <Pill
-                    key={p}
-                    label={p}
-                    active={filters.price.includes(p)}
-                    onPress={() => toggleArray('price', p)}
-                  />
-                ))}
-              </FilterDropdown>
-              <FilterDropdown
-                title="Group Size"
-                summary={GROUP_SIZES.find((g) => g.key === filters.groupSize)?.label ?? ''}
-              >
-                {GROUP_SIZES.map((g) => (
-                  <Pill
-                    key={g.key}
-                    label={g.label}
-                    active={filters.groupSize === g.key}
-                    onPress={() =>
-                      setFilters((p) => ({ ...p, groupSize: p.groupSize === g.key ? null : g.key }))
-                    }
-                  />
-                ))}
-              </FilterDropdown>
-              <FilterDropdown
-                title="Vibe"
-                summary={filters.vibes.length ? `${filters.vibes.length} selected` : ''}
-              >
-                {VIBES.map((v) => (
-                  <Pill
-                    key={v}
-                    label={v}
-                    active={filters.vibes.includes(v)}
-                    onPress={() => toggleArray('vibes', v)}
-                  />
-                ))}
-              </FilterDropdown>
-              <FilterDropdown
-                title="Looking For"
-                summary={filters.intents.length ? `${filters.intents.length} selected` : ''}
-              >
-                {HOST_INTENTS.map((t) => (
-                  <Pill
-                    key={t}
-                    label={t}
-                    active={filters.intents.includes(t)}
-                    onPress={() => toggleArray('intents', t)}
-                  />
-                ))}
-              </FilterDropdown>
-            </View>
-          )}
 
           {/* Curated shelves (hidden while any filter is active) */}
           {!hasFilters && (
@@ -475,6 +354,17 @@ export default function Discover() {
           </View>
         </ScrollView>
       )}
+
+      <FilterSheet
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        setFilters={setFilters}
+        resultCount={allUpcoming.length}
+        onClear={clearAll}
+        topInset={insets.top}
+        bottomInset={insets.bottom}
+      />
     </Screen>
   );
 }
