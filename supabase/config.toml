@@ -1,0 +1,13 @@
+# Supabase project config.
+# Linked remote project ref: iavekjcrywtmdfdofwwa (nosh-social-prod, us-east-2)
+# We push migrations to the hosted project; no local stack is used.
+
+project_id = "nosh-social"
+
+[db]
+# Postgres major version of the hosted project.
+major_version = 17
+
+[db.migrations]
+# Apply migrations in filename (version) order.
+schema_paths = []
