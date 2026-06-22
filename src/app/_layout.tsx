@@ -19,11 +19,12 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="auto" />
+          <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="sign-in" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="event/[id]" />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>

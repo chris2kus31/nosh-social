@@ -685,6 +685,18 @@ export default function Host() {
                 <Share2 color="#fff" size={20} />
                 <Text className="text-white">Share via…</Text>
               </TouchableOpacity>
+              {createdId && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const newId = createdId;
+                    reset();
+                    router.replace(`/event/${newId}`);
+                  }}
+                  className="h-12 flex-row items-center justify-center rounded-xl border border-white/20 bg-white/10"
+                >
+                  <Text className="font-semibold text-white">View Your Event</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   reset();
