@@ -55,6 +55,62 @@ export const CUISINES = [
   'Vegan',
 ] as const;
 
+/** Event "vibe" tags shown in the Host wizard (mirrors the web app). */
+export const VIBES = [
+  'Casual & Relaxed',
+  'Cozy & Intimate',
+  'Outdoor/Patio',
+  'Cocktails & Drinks',
+  'Wine Focused',
+  'Brunch Vibes',
+  'Quiet & Conversation',
+  'Lively & Social',
+  'New to Area',
+  'Foodie Talk',
+  'Business/Networking',
+  'Creative Minds',
+  'Date Night',
+  'Family Style',
+  'Late Night',
+  'Cultural Exchange',
+  'Sports/Games',
+  'Book Club',
+  'Industry Meetup',
+  'Celebration',
+  'LGBTQ+ Friendly',
+] as const;
+
+/** What the host hopes to get out of the meal. */
+export const HOST_INTENTS = [
+  'Meet New People',
+  'Deep Conversations',
+  'Networking',
+  'Casual Hangout',
+  'Foodie Experience',
+  'Learn About Culture',
+  'Make Friends',
+  'Business Chat',
+  'Creative Minds',
+  'Local Insights',
+  'Quiet Company',
+  'Fun & Laughter',
+] as const;
+
+/** Topics a host can flag as off-limits. */
+export const TOPICS_TO_AVOID = [
+  'Politics',
+  'Religion',
+  'Work',
+  'Money',
+  'Relationships',
+  'Health Issues',
+  'Gossip',
+  'Controversial Topics',
+  'Heavy Topics',
+] as const;
+
+export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
+
 export type ReputationTier = {
   /** Minimum reputation score required to reach this tier. */
   threshold: number;

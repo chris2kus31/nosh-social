@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { format } from 'date-fns';
+import { Image } from 'expo-image';
 import { CalendarDays, MapPin, Users } from 'lucide-react-native';
 import { ActivityIndicator, Text, View } from 'react-native';
 
@@ -11,31 +12,42 @@ function EventCard({ event }: { event: EventRow }) {
   const seats = Array.isArray(event.attendees) ? event.attendees.length : (event.seats_taken ?? 0);
 
   return (
-    <View className="mb-3 rounded-2xl border border-white/15 bg-white/10 p-4">
-      <Text className="text-lg font-semibold text-white" numberOfLines={1}>
-        {event.title}
-      </Text>
+    <View className="mb-3 overflow-hidden rounded-2xl border border-white/15 bg-white/10">
+      {event.image_url ? (
+        <Image
+          source={{ uri: event.image_url }}
+          style={{ width: '100%', height: 160 }}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : null}
 
-      <View className="mt-2 flex-row items-center gap-1.5">
-        <MapPin size={14} color="rgba(255,255,255,0.6)" />
-        <Text className="flex-1 text-sm text-white/60" numberOfLines={1}>
-          {event.venue_name ?? 'Venue TBD'}
+      <View className="p-4">
+        <Text className="text-lg font-semibold text-white" numberOfLines={1}>
+          {event.title}
         </Text>
-      </View>
 
-      <View className="mt-1 flex-row items-center gap-1.5">
-        <CalendarDays size={14} color="rgba(255,255,255,0.6)" />
-        <Text className="text-sm text-white/60">{when}</Text>
-      </View>
-
-      <View className="mt-3 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-1.5">
-          <Users size={14} color="#fff" />
-          <Text className="text-sm text-white/80">
-            {seats}/{event.max_seats} seats
+        <View className="mt-2 flex-row items-center gap-1.5">
+          <MapPin size={14} color="rgba(255,255,255,0.6)" />
+          <Text className="flex-1 text-sm text-white/60" numberOfLines={1}>
+            {event.venue_name ?? 'Venue TBD'}
           </Text>
         </View>
-        <Text className="text-xs font-medium uppercase text-white/50">{event.status}</Text>
+
+        <View className="mt-1 flex-row items-center gap-1.5">
+          <CalendarDays size={14} color="rgba(255,255,255,0.6)" />
+          <Text className="text-sm text-white/60">{when}</Text>
+        </View>
+
+        <View className="mt-3 flex-row items-center justify-between">
+          <View className="flex-row items-center gap-1.5">
+            <Users size={14} color="#fff" />
+            <Text className="text-sm text-white/80">
+              {seats}/{event.max_seats} seats
+            </Text>
+          </View>
+          <Text className="text-xs font-medium uppercase text-white/50">{event.status}</Text>
+        </View>
       </View>
     </View>
   );

@@ -1,7 +1,5 @@
-import { BlurView } from 'expo-blur';
 import { Redirect, Tabs } from 'expo-router';
 import { CalendarDays, Compass, Plus, User } from 'lucide-react-native';
-import { Platform, View } from 'react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -19,16 +17,10 @@ export default function TabsLayout() {
         tabBarActiveTintColor: '#ffffff',
         tabBarInactiveTintColor: 'rgba(255,255,255,0.55)',
         tabBarStyle: {
-          position: 'absolute',
-          borderTopColor: 'rgba(255,255,255,0.15)',
-          backgroundColor: Platform.OS === 'android' ? 'rgba(30,10,20,0.92)' : 'transparent',
+          backgroundColor: '#2a0d18',
+          borderTopColor: 'rgba(255,255,255,0.12)',
+          borderTopWidth: 0.5,
         },
-        tabBarBackground: () =>
-          Platform.OS === 'ios' ? (
-            <BlurView tint="dark" intensity={40} style={{ flex: 1 }} />
-          ) : (
-            <View style={{ flex: 1 }} />
-          ),
       }}
     >
       <Tabs.Screen
