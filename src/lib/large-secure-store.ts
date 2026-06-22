@@ -1,7 +1,6 @@
-import 'react-native-get-random-values';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as aesjs from 'aes-js';
+import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
 /**
@@ -17,7 +16,8 @@ import * as SecureStore from 'expo-secure-store';
  */
 export class LargeSecureStore {
   private async _encrypt(key: string, value: string) {
-    const encryptionKey = crypto.getRandomValues(new Uint8Array(256 / 8));
+    // expo-crypto is first-party and included in Expo Go (no external polyfill).
+    const encryptionKey = Crypto.getRandomValues(new Uint8Array(256 / 8));
 
     const cipher = new aesjs.ModeOfOperation.ctr(encryptionKey, new aesjs.Counter(1));
     const encryptedBytes = cipher.encrypt(aesjs.utils.utf8.toBytes(value));
