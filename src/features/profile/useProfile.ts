@@ -31,7 +31,21 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
 export const profileKeys = {
   me: ['profile', 'me'] as const,
   byIds: (ids: string[]) => ['profile', 'byIds', [...ids].sort()] as const,
+  detail: (id: string) => ['profile', 'detail', id] as const,
 };
+
+/** Fetch any user's public profile by id (used for the UserProfile screen). */
+export function usePublicProfile(id: string) {
+  return useQuery({
+    queryKey: profileKeys.detail(id),
+    enabled: !!id,
+    queryFn: async (): Promise<Profile> => {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
 
 /** Fetch the signed-in user's profile row. */
 export function useMyProfile() {
@@ -108,7 +122,9 @@ export function useManageConnection() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: profileKeys.me });
+      // Refresh both the signed-in user and any cached public profiles, since a
+      // connection action mutates both sides of the relationship.
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 }

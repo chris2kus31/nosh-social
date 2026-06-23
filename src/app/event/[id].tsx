@@ -279,7 +279,11 @@ export default function EventDetailsScreen() {
           {/* Host */}
           <Card>
             <Text className="mb-4 font-semibold text-white">Your Host</Text>
-            <View className="flex-row items-start gap-4">
+            <TouchableOpacity
+              onPress={() => router.push(`/user/${event.host_id}`)}
+              activeOpacity={0.7}
+              className="flex-row items-start gap-4"
+            >
               <View
                 style={{ width: 64, height: 64, borderRadius: 16, flexShrink: 0 }}
                 className="items-center justify-center overflow-hidden bg-nosh-maroon"
@@ -311,7 +315,7 @@ export default function EventDetailsScreen() {
                   <Text className="text-sm leading-relaxed text-white/70">{event.host_bio}</Text>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           </Card>
 
           {intents.length > 0 && (
@@ -451,8 +455,10 @@ export default function EventDetailsScreen() {
                   const status = ARRIVAL[a.arrival_status ?? 'on_the_way'];
                   const StatusIcon = status.icon;
                   return (
-                    <View
+                    <TouchableOpacity
                       key={a.user_id}
+                      onPress={() => router.push(`/user/${a.user_id}`)}
+                      activeOpacity={0.7}
                       className="flex-row items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
                     >
                       <View
@@ -496,7 +502,7 @@ export default function EventDetailsScreen() {
                           </View>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
