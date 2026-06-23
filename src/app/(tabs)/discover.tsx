@@ -149,7 +149,16 @@ export default function Discover() {
     return () => clearInterval(t);
   }, []);
 
-  const events = useMemo(() => data ?? [], [data]);
+  // Hide events hosted by anyone the user has blocked or muted.
+  const hiddenHosts = useMemo(
+    () => new Set<string>([...(profile?.blocked_users ?? []), ...(profile?.muted_users ?? [])]),
+    [profile?.blocked_users, profile?.muted_users],
+  );
+
+  const events = useMemo(
+    () => (data ?? []).filter((e) => !hiddenHosts.has(e.host_id)),
+    [data, hiddenHosts],
+  );
 
   const activeCount = activeFilterCount(filters, dateFilter);
   const hasFilters = activeCount > 0;

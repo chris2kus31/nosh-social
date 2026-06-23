@@ -4,22 +4,30 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
   Award,
+  Ban,
   Calendar,
   Check,
   Clock,
   Heart,
   MapPin,
+  MoreVertical,
   UserMinus,
   UserPlus,
   Users,
   Utensils,
+  VolumeX,
 } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReputationCard } from '@/features/profile/ReputationCard';
-import { useMyProfile, usePublicProfile, useManageConnection } from '@/features/profile/useProfile';
+import {
+  useBlockMute,
+  useMyProfile,
+  usePublicProfile,
+  useManageConnection,
+} from '@/features/profile/useProfile';
 import { useEvents } from '@/features/events/useEvents';
 import { useAuthStore } from '@/stores/auth';
 import { noshColors } from '@/theme/nosh';
@@ -54,6 +62,7 @@ export default function UserProfileScreen() {
   const { data: me } = useMyProfile();
   const { data: events = [] } = useEvents();
   const manage = useManageConnection();
+  const { isBlocked, isMuted, block, unblock, mute, unmute } = useBlockMute();
 
   const stats = useMemo(() => {
     const isAttendee = (attendees: unknown, uid: string) =>
@@ -103,6 +112,48 @@ export default function UserProfileScreen() {
       </LinearGradient>
     );
   }
+
+  // If this user has blocked the viewer, don't surface their profile.
+  if (myId && id !== myId && (profile.blocked_users ?? []).includes(myId)) {
+    return (
+      <LinearGradient colors={noshColors.gradient} style={{ flex: 1 }}>
+        <View className="flex-1 items-center justify-center px-6">
+          <Ban color="rgba(255,255,255,0.5)" size={36} />
+          <Text className="mt-4 text-center text-white/70">This profile isn’t available.</Text>
+          <TouchableOpacity
+            onPress={goBack}
+            className="mt-4 rounded-xl border border-white/20 bg-white/10 px-5 py-3"
+          >
+            <Text className="text-white">Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  const iBlocked = isBlocked(id);
+  const iMuted = isMuted(id);
+
+  const confirmBlock = () =>
+    Alert.alert(
+      'Block user?',
+      `${shortName(profile.full_name)} won’t be able to see your profile or invite you, and you won’t see their events. This also removes any connection between you.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Block', style: 'destructive', onPress: () => block(id) },
+      ],
+    );
+
+  const openActions = () =>
+    Alert.alert(shortName(profile.full_name), undefined, [
+      iMuted
+        ? { text: 'Unmute', onPress: () => unmute(id) }
+        : { text: 'Mute', onPress: () => mute(id) },
+      iBlocked
+        ? { text: 'Unblock', onPress: () => unblock(id) }
+        : { text: 'Block', style: 'destructive', onPress: confirmBlock },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
 
   const tags = (profile.reputation_tags ?? {}) as Record<string, number>;
   const totalTags = Object.values(tags).reduce((sum, n) => sum + (n || 0), 0);
@@ -157,14 +208,64 @@ export default function UserProfileScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity
-          onPress={goBack}
-          className="mb-6 h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10"
-        >
-          <ArrowLeft color="#fff" size={20} />
-        </TouchableOpacity>
+        <View className="mb-6 flex-row items-center justify-between">
+          <TouchableOpacity
+            onPress={goBack}
+            className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10"
+          >
+            <ArrowLeft color="#fff" size={20} />
+          </TouchableOpacity>
+          {connState !== 'self' && (
+            <TouchableOpacity
+              onPress={openActions}
+              className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10"
+              accessibilityLabel="More options"
+            >
+              <MoreVertical color="#fff" size={20} />
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View className="gap-6">
+          {iBlocked && (
+            <View className="flex-row items-center justify-between rounded-2xl border border-red-500/30 bg-red-500/15 p-4">
+              <View className="flex-1 pr-3">
+                <View className="flex-row items-center gap-2">
+                  <Ban color="#fca5a5" size={16} />
+                  <Text className="font-semibold text-white">You blocked this user</Text>
+                </View>
+                <Text className="mt-1 text-xs text-white/70">
+                  They can’t see your profile or invite you, and you won’t see their events.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => unblock(id)}
+                className="rounded-lg border border-white/25 bg-white/15 px-3 py-2"
+              >
+                <Text className="text-sm text-white">Unblock</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {iMuted && !iBlocked && (
+            <View className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-white/10 p-4">
+              <View className="flex-1 pr-3">
+                <View className="flex-row items-center gap-2">
+                  <VolumeX color="rgba(255,255,255,0.7)" size={16} />
+                  <Text className="font-semibold text-white">You muted this user</Text>
+                </View>
+                <Text className="mt-1 text-xs text-white/70">
+                  You won’t see their events in your feed.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => unmute(id)}
+                className="rounded-lg border border-white/25 bg-white/15 px-3 py-2"
+              >
+                <Text className="text-sm text-white">Unmute</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <ReputationCard score={profile.reputation_score} />
 
           {/* Header */}
@@ -192,7 +293,7 @@ export default function UserProfileScreen() {
                   {id === myId ? profile.email : 'Email hidden'}
                 </Text>
 
-                {connState !== 'self' && (
+                {connState !== 'self' && !iBlocked && (
                   <TouchableOpacity
                     onPress={onConnectPress}
                     disabled={manage.isPending}

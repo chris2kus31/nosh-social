@@ -36,6 +36,8 @@ import {
   type EventRow,
   type HostTag,
   type Waiter,
+  type WrapUpResponse,
+  hasEventEnded,
   useApproveWaitlist,
   useEvent,
   useJoinEvent,
@@ -43,6 +45,7 @@ import {
   useLeaveEvent,
   useRejectWaitlist,
 } from '@/features/events/useEvent';
+import { useMyProfile } from '@/features/profile/useProfile';
 import { useAuthStore } from '@/stores/auth';
 import { noshColors } from '@/theme/nosh';
 
@@ -98,6 +101,7 @@ export default function EventDetailsScreen() {
   const userId = useAuthStore((s) => s.user?.id);
 
   const { data: event, isLoading, error } = useEvent(id);
+  const { data: me } = useMyProfile();
   const join = useJoinEvent(id);
   const leave = useLeaveEvent(id);
   const joinWaitlist = useJoinWaitlist(id);
@@ -133,6 +137,9 @@ export default function EventDetailsScreen() {
   }
 
   const attendees = (event.attendees as unknown as Attendee[]) ?? [];
+  // Hide blocked users from the roster (seat counts still use the full list).
+  const blockedSet = new Set(me?.blocked_users ?? []);
+  const visibleAttendees = attendees.filter((a) => !blockedSet.has(a.user_id));
   const waitlist = (event.waitlist as unknown as Waiter[]) ?? [];
   const hostTags = (event.host_reputation_tags as unknown as HostTag[]) ?? [];
   const intents = event.host_intent_tags ?? [];
@@ -149,6 +156,8 @@ export default function EventDetailsScreen() {
   const isHost = userId === event.host_id;
   const isAttendee = attendees.some((a) => a.user_id === userId);
   const isOnWaitlist = waitlist.some((w) => w.user_id === userId);
+  const wrapUps = (event.wrap_up_responses as unknown as WrapUpResponse[]) ?? [];
+  const hasWrappedUp = wrapUps.some((r) => r.user_id === userId);
 
   const onShare = () => {
     Share.share({
@@ -446,13 +455,13 @@ export default function EventDetailsScreen() {
           )}
 
           {/* Who's coming */}
-          {attendees.length > 0 && (
+          {visibleAttendees.length > 0 && (
             <Card>
               <Text className="mb-4 font-semibold text-white">
-                Who’s Coming ({attendees.length})
+                Who’s Coming ({visibleAttendees.length})
               </Text>
               <View className="gap-3">
-                {attendees.map((a) => {
+                {visibleAttendees.map((a) => {
                   const status = ARRIVAL[a.arrival_status ?? 'on_the_way'];
                   const StatusIcon = status.icon;
                   return (
@@ -535,11 +544,13 @@ export default function EventDetailsScreen() {
           isHost={isHost}
           isAttendee={isAttendee}
           isOnWaitlist={isOnWaitlist}
+          hasWrappedUp={hasWrappedUp}
           seatsLeft={seatsLeft}
           busy={busy}
           onJoin={() => join.mutate(undefined, { onError: onJoinError })}
           onWaitlist={() => joinWaitlist.mutate(undefined, { onError: onJoinError })}
           onLeave={confirmLeave}
+          onWrapUp={() => router.push(`/event/wrap-up/${event.id}`)}
         />
       </View>
     </LinearGradient>
@@ -586,23 +597,34 @@ function ActionButton({
   isHost,
   isAttendee,
   isOnWaitlist,
+  hasWrappedUp,
   seatsLeft,
   busy,
   onJoin,
   onWaitlist,
   onLeave,
+  onWrapUp,
 }: {
   event: EventRow;
   isHost: boolean;
   isAttendee: boolean;
   isOnWaitlist: boolean;
+  hasWrappedUp: boolean;
   seatsLeft: number;
   busy: boolean;
   onJoin: () => void;
   onWaitlist: () => void;
   onLeave: () => void;
+  onWrapUp: () => void;
 }) {
-  if (event.status === 'completed') {
+  if (hasEventEnded(event)) {
+    if (isHost || isAttendee) {
+      return hasWrappedUp ? (
+        <PrimaryButton label="Wrap-Up Submitted ✓" tone="green" disabled onPress={() => {}} />
+      ) : (
+        <PrimaryButton label="Leave a Wrap-Up" onPress={onWrapUp} />
+      );
+    }
     return <PrimaryButton label="Event Completed" disabled onPress={() => {}} />;
   }
   if (event.status === 'live') {

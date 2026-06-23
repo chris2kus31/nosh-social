@@ -101,6 +101,65 @@ export function useProfilesByIds(ids: string[]) {
   });
 }
 
+/**
+ * Block / mute actions, all writing to the signed-in user's own profile row.
+ *
+ * - Mute is a one-way soft hide: you stop seeing the target's events/updates.
+ * - Block is a harder cut: it also severs any connection (via manage_connection)
+ *   and drops the target from your muted list to avoid duplicate state.
+ *
+ * Enforcement is viewer-side (feed/list filtering) since profiles are public-read
+ * in Phase 1; this matches the web app's behavior.
+ */
+export function useBlockMute() {
+  const { data: me } = useMyProfile();
+  const update = useUpdateProfile();
+  const manage = useManageConnection();
+
+  const blockedIds = me?.blocked_users ?? [];
+  const mutedIds = me?.muted_users ?? [];
+
+  const isBlocked = (id: string) => blockedIds.includes(id);
+  const isMuted = (id: string) => mutedIds.includes(id);
+
+  const block = async (id: string) => {
+    // Sever any existing connection / pending request both ways first.
+    if (
+      me &&
+      (me.connections.includes(id) ||
+        me.sent_requests.includes(id) ||
+        me.connection_requests.includes(id))
+    ) {
+      await manage.mutateAsync({ targetUserId: id, action: 'remove' });
+    }
+    await update.mutateAsync({
+      blocked_users: Array.from(new Set([...blockedIds, id])),
+      muted_users: mutedIds.filter((x) => x !== id),
+    });
+  };
+
+  const unblock = (id: string) =>
+    update.mutateAsync({ blocked_users: blockedIds.filter((x) => x !== id) });
+
+  const mute = (id: string) =>
+    update.mutateAsync({ muted_users: Array.from(new Set([...mutedIds, id])) });
+
+  const unmute = (id: string) =>
+    update.mutateAsync({ muted_users: mutedIds.filter((x) => x !== id) });
+
+  return {
+    blockedIds,
+    mutedIds,
+    isBlocked,
+    isMuted,
+    block,
+    unblock,
+    mute,
+    unmute,
+    isPending: update.isPending || manage.isPending,
+  };
+}
+
 export type ConnectionAction = 'accept' | 'reject' | 'remove' | 'request';
 
 /** Run a connection action through the controlled `manage_connection` RPC. */

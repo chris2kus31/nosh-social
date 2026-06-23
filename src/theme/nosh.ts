@@ -111,6 +111,24 @@ export const TOPICS_TO_AVOID = [
 
 export const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
 
+/**
+ * Positive-only reputation tags a diner can award others in the post-event
+ * wrap-up. Mirrors the web app exactly. Each awarded tag increments the
+ * recipient's reputation_tags count and recomputes their reputation_score.
+ */
+export const POSITIVE_REPUTATION_TAGS = [
+  'Good Conversationalist',
+  'Friendly',
+  'On Time',
+  'Inclusive',
+  'Great Listener',
+  'Low-Drama',
+  'Helps Include Others',
+  'Pays Fairly',
+  'Chill Vibes',
+  'Planner/Organizer',
+] as const;
+
 export type ReputationTier = {
   /** Minimum reputation score required to reach this tier. */
   threshold: number;

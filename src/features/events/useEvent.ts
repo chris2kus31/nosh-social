@@ -1,9 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { Database } from '@/lib/database.types';
+import type { Database, Json } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 
 export type EventRow = Database['public']['Tables']['events']['Row'];
+
+/** Tags one diner awards another in the wrap-up (matches submit_wrap_up). */
+export type WrapUpTagGiven = { to_user_id: string; to_user_name: string; tags: string[] };
+
+/** A single diner's wrap-up submission, stored in events.wrap_up_responses. */
+export type WrapUpResponse = {
+  user_id: string;
+  user_name: string | null;
+  tags_given: WrapUpTagGiven[];
+  would_dine_again: boolean | null;
+  completed_at: string;
+};
 
 /** Attendee object stored in events.attendees (built server-side by join_event). */
 export type Attendee = {
@@ -28,6 +40,20 @@ export type HostTag = { tag: string; count: number };
 export const eventKeys = {
   detail: (id: string) => ['event', id] as const,
 };
+
+/**
+ * Whether an event's dining window has closed. The stored `status` column is
+ * never auto-advanced, so we fall back to start time + duration (defaults to
+ * 2h) — the same date math used by the My Events "Past" tab.
+ */
+export function hasEventEnded(
+  event: Pick<EventRow, 'status' | 'date_time' | 'duration_minutes'>,
+): boolean {
+  if (event.status === 'completed') return true;
+  if (!event.date_time) return false;
+  const end = new Date(event.date_time).getTime() + (event.duration_minutes || 120) * 60 * 1000;
+  return Date.now() >= end;
+}
 
 /** Fetch a single event by id. */
 export function useEvent(id: string) {
@@ -105,6 +131,35 @@ export function useUpdateEvent(id: string) {
     onSuccess: (data) => {
       queryClient.setQueryData(eventKeys.detail(id), data);
       queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+/**
+ * Submit a post-event wrap-up: award positive reputation tags to fellow diners
+ * and record a "would dine again" answer. The submit_wrap_up RPC applies the
+ * tags to each recipient and recomputes their reputation_score server-side.
+ */
+export function useSubmitWrapUp(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: {
+      tagsGiven: WrapUpTagGiven[];
+      wouldDineAgain: boolean;
+    }): Promise<EventRow> => {
+      const { data, error } = await supabase.rpc('submit_wrap_up', {
+        p_event_id: id,
+        p_tags_given: vars.tagsGiven as unknown as Json,
+        p_would_dine_again: vars.wouldDineAgain,
+      });
+      if (error) throw error;
+      return data as unknown as EventRow;
+    },
+    onSuccess: (data) => {
+      if (data) queryClient.setQueryData(eventKeys.detail(id), data);
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      // Recipients' reputation changed -> refresh any profile views.
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 }

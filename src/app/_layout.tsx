@@ -81,6 +81,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="event/[id]" />
             <Stack.Screen name="event/edit/[id]" />
+            <Stack.Screen name="event/wrap-up/[id]" />
             <Stack.Screen name="user/[id]" />
           </Stack>
         </QueryClientProvider>
