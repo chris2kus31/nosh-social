@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Apple } from 'lucide-react-native';
 import { useState } from 'react';
@@ -27,9 +27,23 @@ const MIN_PASSWORD = 6;
 const inputClass =
   'rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-900';
 
+// Inline (not className) to avoid a NativeWind v4 + Expo Router interop race
+// where conditional className template literals using shadow/opacity utilities
+// surface as a misleading "Couldn't find a navigation context" crash.
+const activeToggleStyle = {
+  backgroundColor: '#ffffff',
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.1,
+  shadowRadius: 2,
+  elevation: 2,
+} as const;
+
 export default function SignIn() {
   const session = useAuthStore((s) => s.session);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { confirmed } = useLocalSearchParams<{ confirmed?: string }>();
 
   const [mode, setMode] = useState<Mode>('signin');
   const [name, setName] = useState('');
@@ -91,12 +105,8 @@ export default function SignIn() {
       return;
     }
 
-    // Email confirmation is required.
-    Alert.alert(
-      'Check your email',
-      'We sent a confirmation link to your email. Confirm it, then sign in.',
-      [{ text: 'OK', onPress: () => switchMode('signin') }],
-    );
+    // Email confirmation required -> collect the 6-digit code on the next screen.
+    router.push({ pathname: '/verify-otp', params: { email: trimmedEmail } });
   }
 
   async function onSubmit() {
@@ -157,6 +167,14 @@ export default function SignIn() {
             </Text>
           </View>
 
+          {confirmed === '1' && (
+            <View className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+              <Text className="text-center text-sm font-medium text-green-700">
+                Your email is confirmed — sign in to continue.
+              </Text>
+            </View>
+          )}
+
           {/* Mode toggle */}
           <View className="mb-7 flex-row rounded-xl bg-neutral-100 p-1">
             {(['signin', 'signup'] as Mode[]).map((m) => (
@@ -164,14 +182,12 @@ export default function SignIn() {
                 key={m}
                 onPress={() => switchMode(m)}
                 activeOpacity={0.8}
-                className={`flex-1 items-center rounded-lg py-2.5 ${
-                  mode === m ? 'bg-white shadow-sm' : ''
-                }`}
+                className="flex-1 items-center rounded-lg py-2.5"
+                style={mode === m ? activeToggleStyle : undefined}
               >
                 <Text
-                  className={`text-sm font-semibold ${
-                    mode === m ? 'text-nosh-maroon' : 'text-neutral-500'
-                  }`}
+                  className="text-sm font-semibold"
+                  style={{ color: mode === m ? '#590219' : '#737373' }}
                 >
                   {m === 'signin' ? 'Sign In' : 'Create Account'}
                 </Text>
@@ -238,9 +254,8 @@ export default function SignIn() {
             )}
 
             <TouchableOpacity
-              className={`mt-2 items-center rounded-xl bg-nosh-maroon py-4 ${
-                canSubmit ? '' : 'opacity-50'
-              }`}
+              className="mt-2 items-center rounded-xl bg-nosh-maroon py-4"
+              style={{ opacity: canSubmit ? 1 : 0.5 }}
               disabled={!canSubmit}
               activeOpacity={0.9}
               onPress={onSubmit}
