@@ -82,3 +82,44 @@ function useWaitlistDecision(rpc: 'approve_waitlist' | 'reject_waitlist', id: st
 
 export const useApproveWaitlist = (id: string) => useWaitlistDecision('approve_waitlist', id);
 export const useRejectWaitlist = (id: string) => useWaitlistDecision('reject_waitlist', id);
+
+export type EventUpdate = Database['public']['Tables']['events']['Update'];
+
+/**
+ * Host-only edit of an event's own columns. RLS (events_update_host) enforces
+ * that only the host can write, so no RPC is needed.
+ */
+export function useUpdateEvent(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: EventUpdate): Promise<EventRow> => {
+      const { data, error } = await supabase
+        .from('events')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(eventKeys.detail(id), data);
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+/** Host-only delete of an event. RLS (events_delete_host) gates this. */
+export function useDeleteEvent(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('events').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: eventKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}

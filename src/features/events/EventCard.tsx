@@ -72,7 +72,7 @@ function Badge({ label, tone }: { label: string; tone: keyof typeof BADGE_TONES 
   );
 }
 
-export function EventCard({ event }: { event: EventRow }) {
+export function EventCard({ event, isHost = false }: { event: EventRow; isHost?: boolean }) {
   const router = useRouter();
 
   const attendees = Array.isArray(event.attendees) ? (event.attendees as unknown[]) : [];
@@ -131,6 +131,13 @@ export function EventCard({ event }: { event: EventRow }) {
             />
           )}
         </View>
+        {isHost && (
+          <View style={{ position: 'absolute', top: 12, left: 12 }}>
+            <View className="rounded-full border border-purple-400/50 bg-purple-500/40 px-3 py-1.5">
+              <Text className="text-xs font-bold text-white">👑 You&apos;re Hosting</Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Body */}

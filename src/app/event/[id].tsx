@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { format } from 'date-fns';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +11,7 @@ import {
   ExternalLink,
   Info,
   MapPin,
+  Pencil,
   Share2,
   Sparkles,
   Users,
@@ -21,6 +23,7 @@ import {
   Linking,
   ScrollView,
   Share,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -47,6 +50,34 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
     <View className={`rounded-2xl border border-white/20 bg-white/10 p-5 ${className}`}>
       {children}
     </View>
+  );
+}
+
+/** Frosted-glass circular icon button: blur + glossy top sheen + bright rim. */
+function GlassIconButton({
+  onPress,
+  children,
+}: {
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={{ width: 40, height: 40, borderRadius: 20 }}
+      className="overflow-hidden border border-white/40"
+    >
+      <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0.12)', 'rgba(255,255,255,0.02)']}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View className="flex-1 items-center justify-center">{children}</View>
+    </TouchableOpacity>
   );
 }
 
@@ -157,21 +188,22 @@ export default function EventDetailsScreen() {
           />
 
           <View
-            style={{ position: 'absolute', top: insets.top + 8, left: 16, right: 16 }}
+            style={{ position: 'absolute', top: insets.top + 16, left: 16, right: 16 }}
             className="flex-row justify-between"
           >
-            <TouchableOpacity
-              onPress={goBack}
-              className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10"
-            >
+            <GlassIconButton onPress={goBack}>
               <ArrowLeft color="#fff" size={20} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onShare}
-              className="h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10"
-            >
-              <Share2 color="#fff" size={18} />
-            </TouchableOpacity>
+            </GlassIconButton>
+            <View className="flex-row gap-2">
+              {isHost && (
+                <GlassIconButton onPress={() => router.push(`/event/edit/${event.id}`)}>
+                  <Pencil color="#fff" size={18} />
+                </GlassIconButton>
+              )}
+              <GlassIconButton onPress={onShare}>
+                <Share2 color="#fff" size={18} />
+              </GlassIconButton>
+            </View>
           </View>
 
           <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
