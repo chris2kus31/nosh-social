@@ -666,6 +666,20 @@ function ConnectionsTab({ profile }: { profile: Profile }) {
     .filter(Boolean) as Profile[];
   const connections = profile.connections.map((id) => byId.get(id)).filter(Boolean) as Profile[];
 
+  const confirmRemove = (u: Profile) =>
+    Alert.alert(
+      'Remove connection?',
+      `Remove ${u.full_name ?? u.email} from your connections? You can reconnect later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => manage.mutate({ targetUserId: u.id, action: 'remove' }),
+        },
+      ],
+    );
+
   return (
     <View className="gap-6">
       {requests.length > 0 && (
@@ -723,7 +737,7 @@ function ConnectionsTab({ profile }: { profile: Profile }) {
                   <Text className="text-xs text-white/50">{u.email}</Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => manage.mutate({ targetUserId: u.id, action: 'remove' })}
+                  onPress={() => confirmRemove(u)}
                   className="rounded-lg border border-white/20 bg-white/5 p-2"
                   accessibilityLabel="Remove connection"
                 >

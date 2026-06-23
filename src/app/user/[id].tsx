@@ -15,7 +15,7 @@ import {
   Utensils,
 } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReputationCard } from '@/features/profile/ReputationCard';
@@ -120,12 +120,23 @@ export default function UserProfileScreen() {
             : 'none';
 
   const onConnectPress = () => {
+    if (connState === 'connected') {
+      Alert.alert(
+        'Remove connection?',
+        `Remove ${shortName(profile.full_name)} from your connections? You can reconnect later.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => manage.mutate({ targetUserId: id, action: 'remove' }),
+          },
+        ],
+      );
+      return;
+    }
     const action =
-      connState === 'connected' || connState === 'sent'
-        ? 'remove'
-        : connState === 'incoming'
-          ? 'accept'
-          : 'request';
+      connState === 'sent' ? 'remove' : connState === 'incoming' ? 'accept' : 'request';
     manage.mutate({ targetUserId: id, action });
   };
 
