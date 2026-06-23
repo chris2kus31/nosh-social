@@ -10,6 +10,7 @@ import {
   Clock,
   ExternalLink,
   Info,
+  LogOut,
   MapPin,
   Pencil,
   Share2,
@@ -520,9 +521,15 @@ export default function EventDetailsScreen() {
           right: 0,
           paddingBottom: insets.bottom + 16,
           paddingHorizontal: 20,
-          paddingTop: 12,
+          paddingTop: 28,
         }}
       >
+        <LinearGradient
+          colors={['rgba(61,33,2,0)', 'rgba(61,33,2,0.45)', 'rgba(61,33,2,0.6)']}
+          locations={[0, 0.5, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
         <ActionButton
           event={event}
           isHost={isHost}
@@ -613,10 +620,34 @@ function ActionButton({
   }
   if (isAttendee) {
     return (
-      <View className="gap-2">
-        <PrimaryButton label="You’re Going ✓" tone="green" disabled onPress={() => {}} />
-        <TouchableOpacity onPress={onLeave} className="items-center py-1">
-          <Text className="text-sm text-white/60">Leave this Nosh</Text>
+      <View className="gap-3">
+        <View className="h-14 flex-row items-center justify-center gap-2 overflow-hidden rounded-2xl border border-green-400/60">
+          <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={['rgba(134,239,172,0.5)', 'rgba(34,197,94,0.18)', 'rgba(34,197,94,0.06)']}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.8, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <CheckCircle2 color="#dcfce7" size={22} />
+          <Text className="text-lg font-bold text-white">You’re Going</Text>
+        </View>
+        <TouchableOpacity
+          onPress={onLeave}
+          activeOpacity={0.85}
+          className="h-12 flex-row items-center justify-center gap-2 overflow-hidden rounded-2xl border border-white/40"
+        >
+          <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.1)', 'rgba(255,255,255,0.02)']}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.8, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <LogOut color="#fff" size={18} />
+          <Text className="text-base font-semibold text-white">Leave this Nosh</Text>
         </TouchableOpacity>
       </View>
     );
